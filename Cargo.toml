@@ -3,3 +3,7 @@
 name = "bread"
 version = "0.0.1"
 authors = ["Michael Pankov <work@michaelpankov.com>"]
+
+[[bin]]
+name = "test"
+path = "src/test.rs"
