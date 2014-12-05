@@ -1,48 +1,86 @@
-use State::{Beginning, Opening, Inside, Closing, Literal};
+use State::{Beginning, Tag, Inside};
+use Token::{Fg, Literal};
 
+#[deriving(Show)]
 enum State {
     Beginning,
-    Opening,
+    Tag,
     Inside,
-    Closing,
-    Literal,
+}
+
+#[deriving(Show)]
+enum Token {
+    Fg(String),
+    Literal(String),
 }
 
 pub fn prepare(s: String) -> Result<String, String> {
-    let mut r;
     let mut state = Beginning;
     let mut current = String::new();
     let mut tokens = vec![];
-    for i in s.chars() {
-        match state {
-            Beginning => match i {
-                '^' => {
-                    state = Opening;
-                    tokens.push(current);
-                },
-                _   => {
-                    state = Literal;
-                    current.grow(1, i);
-                },
-            },
-            Opening => match i {
-                '(' => {
-                    state = Inside;
-                },
-                  _ => return Err(format!("Expected '(', found {}", i)),
-                },
-            Inside => match i {
-                ')' => {
-                    state = Closing;
-                    tokens.push(current);
+    let mut iter = s.chars().peekable();
+    loop {
+        {
+            let n = iter.peek();
+            match n {
+                None => {
+                    match state {
+                        Tag => return Err(format!("Expected lowercase letter or '(', found EOF")),
+                        Inside => return Err(format!("Expected ')', found EOF")),
+                        Beginning => tokens.push(Literal(current.clone())),
+                    }
+                    break;
                 }
-                  _ => {
-                    state = Inside;
-                    current.grow(1, i);
-                },
-            },
+                Some(i) =>
+                    match state {
+                        Beginning => match *i {
+                            '^' => {
+                                state = Tag;
+                                tokens.push(Literal(current.clone()));
+                                current = String::new();
+                            },
+                            _   => {
+                                state = Beginning;
+                                current.grow(1, *i);
+                            },
+                        },
+                        Tag => match *i {
+                            'a'...'z' => {
+                                state = Tag;
+                                current.grow(1, *i);
+                            },
+                            '(' => {
+                                match current.as_slice() {
+                                    "fg" => {
+                                        state = Inside;
+                                        current = String::new();
+                                    }
+                                    _ => return Err(format!("Expected fg, found {}", current))
+                                }
+                            }
+                            _   => {
+                                  return Err(format!("Expected lowercase letter or '(', found {}. Current: {}, state: {}, tokens: {}", i, current, state, tokens));
+                            }
+                        },
+                        Inside => {
+                            match *i {
+                                ')' => {
+                                    state = Beginning;
+                                    tokens.push(Fg(current.clone()));
+                                    current = String::new();
+                                },
+                                _ => {
+                                    state = Inside;
+                                    current.grow(1, *i);
+                                },
+                            }
+                        },
+                    }
+            }
         }
+        iter.next();
     }
+    Ok(format!("{}", tokens))
 }
 
 
