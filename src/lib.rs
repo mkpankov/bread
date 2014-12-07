@@ -3,14 +3,9 @@ extern crate term;
 use State::{Beginning, Tag, Inside};
 use Token::{Fg, Literal};
 use term::{Terminal, WriterWrapper};
+use term::color::Color;
 
 pub type FullTerminal = Box<Terminal<WriterWrapper> + Send>;
-
-#[deriving(Show, PartialEq, Eq)]
-enum Color {
-    Red,
-    Blue,
-}
 
 #[deriving(Show)]
 enum State {
@@ -56,7 +51,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                             },
                         },
                         Tag => match *i {
-                            'a'...'z' => {
+                            'a'...'z' | '-' => {
                                 state = Tag;
                                 current.grow(1, *i);
                             },
@@ -78,8 +73,23 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                                 ')' => {
                                     state = Beginning;
                                     let color = match current.as_slice() {
-                                        "red" => Color::Red,
-                                        "blue" => Color::Blue,
+                                        "black" => term::color::BLACK,
+                                        "blue" => term::color::BLUE,
+                                        "bright-black" => term::color::BRIGHT_BLACK,
+                                        "bright-blue" => term::color::BRIGHT_BLUE,
+                                        "bright-cyan" => term::color::BRIGHT_CYAN,
+                                        "bright-green" => term::color::BRIGHT_GREEN,
+                                        "bright-magenta" => term::color::BRIGHT_MAGENTA,
+                                        "bright-red" => term::color::BRIGHT_RED,
+                                        "bright-white" => term::color::BRIGHT_WHITE,
+                                        "bright-yellow" => term::color::BRIGHT_YELLOW,
+                                        "cyan" => term::color::CYAN,
+                                        "green" => term::color::GREEN,
+                                        "magenta" => term::color::MAGENTA,
+                                        "red" => term::color::RED,
+                                        "white" => term::color::WHITE,
+                                        "yellow" => term::color::YELLOW,
+
                                         _ => return Err(format!("Expected color name, found {}", current)),
                                     };
                                     tokens.push(Fg(color));
@@ -108,10 +118,7 @@ pub fn render(term: &mut FullTerminal, s: &str) -> Result<(), String> {
                 match t {
                     &Literal(ref string) => write!(term, "{}", string).unwrap(),
                     &Fg(color) => {
-                        term.fg(match color {
-                            Color::Red  => term::color::RED,
-                            Color::Blue => term::color::BLUE,
-                        }).unwrap();
+                        term.fg(color).unwrap();
                     }
                 }
             }
@@ -126,8 +133,20 @@ fn parse_fg_two_colors() {
     assert!(parse(input)
          == Ok(
              vec![Literal("".into_string()),
-                  Fg(Color::Red),
+                  Fg(term::color::RED),
                   Literal("I'm red text ".into_string()),
-                  Fg(Color::Blue),
+                  Fg(term::color::BLUE),
                   Literal("I am blue".into_string())]))
+}
+
+#[test]
+fn parse_fg_colors_bright() {
+    let input = "^fg(bright-green)I'm bright green text ^fg(bright-magenta)I am bright magenta";
+    assert!(parse(input)
+         == Ok(
+             vec![Literal("".into_string()),
+                  Fg(term::color::BRIGHT_GREEN),
+                  Literal("I'm bright green text ".into_string()),
+                  Fg(term::color::BRIGHT_MAGENTA),
+                  Literal("I am bright magenta".into_string())]))
 }
