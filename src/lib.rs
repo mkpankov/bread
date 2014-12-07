@@ -1,8 +1,13 @@
+extern crate term;
+
 use State::{Beginning, Tag, Inside};
 use Token::{Fg, Literal};
+use term::{Terminal, WriterWrapper};
+
+pub type FullTerminal = Box<Terminal<WriterWrapper> + Send>;
 
 #[deriving(Show, PartialEq, Eq)]
-enum Color {
+pub enum Color {
     Red,
     Blue,
 }
@@ -15,12 +20,12 @@ enum State {
 }
 
 #[deriving(Show, PartialEq, Eq)]
-enum Token {
+pub enum Token {
     Fg(Color),
     Literal(String),
 }
 
-fn parse(s: String) -> Result<Vec<Token>, String> {
+fn parse(s: &str) -> Result<Vec<Token>, String> {
     let mut state = Beginning;
     let mut current = String::new();
     let mut tokens = vec![];
@@ -94,19 +99,31 @@ fn parse(s: String) -> Result<Vec<Token>, String> {
     Ok(tokens)
 }
 
-fn render(tokens: Vec<Token>) -> Result<String, String> {
-    Ok("".into_string())
+pub fn render(term: &mut FullTerminal, s: &str) -> Result<(), String> {
+    let maybe_tokens = parse(s);
+    match maybe_tokens {
+        Err(string) => return Err(string),
+        Ok(tokens) => {
+            for t in tokens.iter() {
+                match t {
+                    &Literal(ref string) => write!(term, "{}", string).unwrap(),
+                    &Fg(color) => {
+                        term.fg(match color {
+                            Color::Red  => term::color::RED,
+                            Color::Blue => term::color::BLUE,
+                        }).unwrap();
+                    }
+                }
+            }
+            Ok(term.reset().unwrap())
+        }
+    }
 }
-
-pub fn prepare(s: String) -> Result<String, String> {
-    Ok("".into_string())
-}
-
 
 #[test]
 fn parse_fg_two_colors() {
     let input = "^fg(red)I'm red text ^fg(blue)I am blue";
-    assert!(parse(input.into_string())
+    assert!(parse(input)
          == Ok(
              vec![Literal("".into_string()),
               Fg(Color::Red),
@@ -114,13 +131,4 @@ fn parse_fg_two_colors() {
               Fg(Color::Blue),
               Literal("I am blue".into_string())]))
 
-}
-
-// red   '\033[0;31m'
-// reset '\033[0m'
-#[test]
-fn fg_two_colors() {
-    let input = "^fg(red)I'm red text ^fg(blue)I am blue";
-    assert!(prepare(input.into_string()).unwrap().as_slice()
-         == "\033[0;31mI'm red text\033[0;34mI am blue\033[0m")
 }
