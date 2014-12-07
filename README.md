@@ -1,4 +1,4 @@
-bread
+bread [![Build Status](https://travis-ci.org/mkpankov/bread.svg?branch=master)](https://travis-ci.org/mkpankov/bread.svg?branch=master)
 =====
 
 Text formatting library for terminal output.
