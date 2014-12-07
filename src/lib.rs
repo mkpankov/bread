@@ -126,9 +126,8 @@ fn parse_fg_two_colors() {
     assert!(parse(input)
          == Ok(
              vec![Literal("".into_string()),
-              Fg(Color::Red),
-              Literal("I'm red text ".into_string()),
-              Fg(Color::Blue),
-              Literal("I am blue".into_string())]))
-
+                  Fg(Color::Red),
+                  Literal("I'm red text ".into_string()),
+                  Fg(Color::Blue),
+                  Literal("I am blue".into_string())]))
 }
