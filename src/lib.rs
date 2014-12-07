@@ -8,13 +8,13 @@ enum State {
     Inside,
 }
 
-#[deriving(Show)]
+#[deriving(Show, PartialEq, Eq)]
 enum Token {
     Fg(String),
     Literal(String),
 }
 
-pub fn prepare(s: String) -> Result<String, String> {
+fn parse(s: String) -> Result<Vec<Token>, String> {
     let mut state = Beginning;
     let mut current = String::new();
     let mut tokens = vec![];
@@ -80,9 +80,26 @@ pub fn prepare(s: String) -> Result<String, String> {
         }
         iter.next();
     }
-    Ok(format!("{}", tokens))
+    Ok(tokens)
 }
 
+pub fn prepare(s: String) -> Result<String, String> {
+    Ok("".into_string())
+}
+
+
+#[test]
+fn parse_fg_two_colors() {
+    let input = "^fg(red)I'm red text ^fg(blue)I am blue";
+    assert!(parse(input.into_string())
+         == Ok(
+             vec![Literal("".into_string()),
+              Fg("red".into_string()),
+              Literal("I'm red text ".into_string()),
+              Fg("blue".into_string()),
+              Literal("I am blue".into_string())]))
+
+}
 
 // red   '\033[0;31m'
 // reset '\033[0m'
