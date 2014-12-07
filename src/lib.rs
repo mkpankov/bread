@@ -7,7 +7,7 @@ use term::{Terminal, WriterWrapper};
 pub type FullTerminal = Box<Terminal<WriterWrapper> + Send>;
 
 #[deriving(Show, PartialEq, Eq)]
-pub enum Color {
+enum Color {
     Red,
     Blue,
 }
@@ -20,7 +20,7 @@ enum State {
 }
 
 #[deriving(Show, PartialEq, Eq)]
-pub enum Token {
+enum Token {
     Fg(Color),
     Literal(String),
 }
