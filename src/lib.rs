@@ -1,7 +1,7 @@
 extern crate term;
 
 use State::{Beginning, Tag, Inside};
-use Token::{Fg, Literal};
+use Token::{Fg, Bg, Literal};
 use term::{Terminal, WriterWrapper};
 use term::color::Color;
 
@@ -16,7 +16,8 @@ enum State {
 
 #[deriving(Show, PartialEq, Eq)]
 enum Token {
-    Fg(Color),
+    Fg(Option<Color>),
+    Bg(Option<Color>),
     Literal(String),
 }
 
@@ -56,12 +57,19 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                                 current.grow(1, *i);
                             },
                             '(' => {
+                                let matched;
                                 match current.as_slice() {
-                                    "fg" => {
-                                        state = Inside;
-                                        current = String::new();
+                                    "fg" | "bg" => matched = true,
+                                    _ => return Err(format!("Expected fg or bg, found {}", current))
+                                }
+                                if matched {
+                                    match current.as_slice() {
+                                        "fg" => tokens.push(Fg(None)),
+                                        "bg" => tokens.push(Bg(None)),
+                                        _ => unreachable!(),
                                     }
-                                    _ => return Err(format!("Expected fg, found {}", current))
+                                    state = Inside;
+                                    current = String::new();
                                 }
                             }
                             _   => {
@@ -92,7 +100,13 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
 
                                         _ => return Err(format!("Expected color name, found {}", current)),
                                     };
-                                    tokens.push(Fg(color));
+                                    let maybe_last = tokens.pop();
+                                    match maybe_last {
+                                        None => return Err(format!("Expected a tag token in array, found {}", maybe_last)),
+                                        // FIXME: unwrap the 'last'
+                                        Some(last) => return Err(format!("FIXME")),
+                                    }
+                                    tokens.push(Fg(Some(color)));
                                     current = String::new();
                                 },
                                 _ => {
@@ -117,8 +131,11 @@ pub fn render(term: &mut FullTerminal, s: &str) -> Result<(), String> {
             for t in tokens.iter() {
                 match t {
                     &Literal(ref string) => write!(term, "{}", string).unwrap(),
-                    &Fg(color) => {
-                        term.fg(color).unwrap();
+                    &Fg(maybe_color) => {
+                        term.fg(maybe_color.unwrap()).unwrap();
+                    }
+                    &Bg(maybe_color) => {
+                        term.bg(maybe_color.unwrap()).unwrap();
                     }
                 }
             }
@@ -133,9 +150,9 @@ fn parse_fg_two_colors() {
     assert!(parse(input)
          == Ok(
              vec![Literal("".into_string()),
-                  Fg(term::color::RED),
+                  Fg(Some(term::color::RED)),
                   Literal("I'm red text ".into_string()),
-                  Fg(term::color::BLUE),
+                  Fg(Some(term::color::BLUE)),
                   Literal("I am blue".into_string())]))
 }
 
@@ -145,8 +162,8 @@ fn parse_fg_colors_bright() {
     assert!(parse(input)
          == Ok(
              vec![Literal("".into_string()),
-                  Fg(term::color::BRIGHT_GREEN),
+                  Fg(Some(term::color::BRIGHT_GREEN)),
                   Literal("I'm bright green text ".into_string()),
-                  Fg(term::color::BRIGHT_MAGENTA),
+                  Fg(Some(term::color::BRIGHT_MAGENTA)),
                   Literal("I am bright magenta".into_string())]))
 }
