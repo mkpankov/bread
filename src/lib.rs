@@ -43,7 +43,9 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                         Beginning => match *i {
                             '^' => {
                                 state = Tag;
-                                tokens.push(Literal(current.clone()));
+                                if current.as_slice() != "" {
+                                    tokens.push(Literal(current.clone()));
+                                }
                                 current = String::new();
                             },
                             _   => {
@@ -154,8 +156,7 @@ fn parse_fg_two_colors() {
     println!("{}", parse(input));
     assert!(parse(input)
          == Ok(
-             vec![Literal("".into_string()),
-                  Fg(Some(term::color::RED)),
+             vec![Fg(Some(term::color::RED)),
                   Literal("I'm red text ".into_string()),
                   Fg(Some(term::color::BLUE)),
                   Literal("I am blue".into_string())]))
@@ -167,8 +168,7 @@ fn parse_fg_colors_bright() {
     println!("{}", parse(input));
     assert!(parse(input)
          == Ok(
-             vec![Literal("".into_string()),
-                  Fg(Some(term::color::BRIGHT_GREEN)),
+             vec![Fg(Some(term::color::BRIGHT_GREEN)),
                   Literal("I'm bright green text ".into_string()),
                   Fg(Some(term::color::BRIGHT_MAGENTA)),
                   Literal("I am bright magenta".into_string())]))
@@ -180,13 +180,10 @@ fn parse_fg_bg_colors() {
     println!("{}", parse(input));
     assert!(parse(input)
          == Ok(
-             vec![Literal("".into_string()),
-                  Fg(Some(term::color::BRIGHT_GREEN)),
-                  Literal("".into_string()),
+             vec![Fg(Some(term::color::BRIGHT_GREEN)),
                   Bg(Some(term::color::BLUE)),
                   Literal("I'm bright green text ".into_string()),
                   Bg(Some(term::color::BRIGHT_BLACK)),
-                  Literal("".into_string()),
                   Fg(Some(term::color::BRIGHT_MAGENTA)),
                   Literal("I am bright magenta".into_string())]))
 }
