@@ -101,12 +101,16 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                                         _ => return Err(format!("Expected color name, found {}", current)),
                                     };
                                     let maybe_last = tokens.pop();
-                                    match maybe_last {
+                                    tokens.push(match maybe_last {
                                         None => return Err(format!("Expected a tag token in array, found {}", maybe_last)),
-                                        // FIXME: unwrap the 'last'
-                                        Some(last) => return Err(format!("FIXME")),
-                                    }
-                                    tokens.push(Fg(Some(color)));
+                                        Some(token) => {
+                                            match token {
+                                                Fg(_) => Fg(Some(color)),
+                                                Bg(_) => Bg(Some(color)),
+                                                _ => unreachable!(),
+                                            }
+                                        }
+                                    });
                                     current = String::new();
                                 },
                                 _ => {
@@ -147,6 +151,7 @@ pub fn render(term: &mut FullTerminal, s: &str) -> Result<(), String> {
 #[test]
 fn parse_fg_two_colors() {
     let input = "^fg(red)I'm red text ^fg(blue)I am blue";
+    println!("{}", parse(input));
     assert!(parse(input)
          == Ok(
              vec![Literal("".into_string()),
@@ -159,11 +164,29 @@ fn parse_fg_two_colors() {
 #[test]
 fn parse_fg_colors_bright() {
     let input = "^fg(bright-green)I'm bright green text ^fg(bright-magenta)I am bright magenta";
+    println!("{}", parse(input));
     assert!(parse(input)
          == Ok(
              vec![Literal("".into_string()),
                   Fg(Some(term::color::BRIGHT_GREEN)),
                   Literal("I'm bright green text ".into_string()),
+                  Fg(Some(term::color::BRIGHT_MAGENTA)),
+                  Literal("I am bright magenta".into_string())]))
+}
+
+#[test]
+fn parse_fg_bg_colors() {
+    let input = "^fg(bright-green)^bg(blue)I'm bright green text ^bg(bright-black)^fg(bright-magenta)I am bright magenta";
+    println!("{}", parse(input));
+    assert!(parse(input)
+         == Ok(
+             vec![Literal("".into_string()),
+                  Fg(Some(term::color::BRIGHT_GREEN)),
+                  Literal("".into_string()),
+                  Bg(Some(term::color::BLUE)),
+                  Literal("I'm bright green text ".into_string()),
+                  Bg(Some(term::color::BRIGHT_BLACK)),
+                  Literal("".into_string()),
                   Fg(Some(term::color::BRIGHT_MAGENTA)),
                   Literal("I am bright magenta".into_string())]))
 }
