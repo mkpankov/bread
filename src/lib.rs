@@ -1,7 +1,7 @@
 extern crate term;
 
-use State::{Beginning, Tag, Inside, InsideColor};
-use Token::{Fg, Bg, Bold, Dim, Reset, Literal};
+use State::{Beginning, Tag, Inside, InsideColor, InsideBool};
+use Token::{Fg, Bg, Bold, Dim, Italic, Reset, Literal};
 use term::{Terminal, WriterWrapper};
 use term::color::Color;
 
@@ -13,6 +13,7 @@ enum State {
     Tag,
     Inside,
     InsideColor,
+    InsideBool,
 }
 
 #[deriving(Show, PartialEq, Eq)]
@@ -21,6 +22,7 @@ enum Token {
     Bg(Option<Color>),
     Bold,
     Dim,
+    Italic(Option<bool>),
     Reset,
     Literal(String),
 }
@@ -39,6 +41,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                         Tag => return Err(format!("Expected lowercase letter or '(', found EOF")),
                         Inside => return Err(format!("Expected ')', found EOF")),
                         InsideColor => return Err(format!("Expected ')', found EOF")),
+                        InsideBool => return Err(format!("Expected ')', found EOF")),
                         Beginning => if current.as_slice() != "" {
                             tokens.push(Literal(current.clone()))
                         }
@@ -83,6 +86,10 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                                         tokens.push(Dim);
                                         state = Inside;
                                     }
+                                    "italic" => {
+                                        tokens.push(Italic(None));
+                                        state = InsideBool;
+                                    }
                                     "reset" => {
                                         tokens.push(Reset);
                                         state = Inside;
@@ -106,6 +113,31 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                                 _   => {
                                     return Err(format!("Expected ')', found {}", *i));
                                 }
+                            }
+                        }
+                        InsideBool => {
+                            match *i {
+                                ')' => {
+                                    state = Beginning;
+                                    let value = match current.as_slice() {
+                                        "true" => true,
+                                        "false" => false,
+                                        _ => return Err(format!("Expected bool, found {}", current)),
+                                    };
+                                    let maybe_last = tokens.pop();
+                                    current = String::new();
+                                    tokens.push(match maybe_last {
+                                        None => return Err(format!("Expected a tag token in array, found {}", maybe_last)),
+                                        Some(token) => match token {
+                                            Italic(_) => Italic(Some(value)),
+                                            _ => return Err(format!("Expected italic tag, found {}", token)),
+                                        }
+                                    })
+                                }
+                                _ => {
+                                    state = InsideBool;
+                                    current.grow(1, *i);
+                                },
                             }
                         }
                         InsideColor => {
@@ -178,6 +210,9 @@ pub fn render(term: &mut FullTerminal, s: &str) -> Result<(), String> {
                     }
                     &Dim => {
                         term.attr(term::attr::Dim).unwrap();
+                    }
+                    &Italic(maybe_value) => {
+                        term.attr(term::attr::Italic(maybe_value.unwrap())).unwrap();
                     }
                     &Reset => {
                         term.reset().unwrap();
@@ -260,5 +295,17 @@ fn parse_reset() {
              vec![Fg(Some(term::color::RED)),
                   Literal("I'm just dim text".into_string()),
                   Reset,
+                  ]))
+}
+
+#[test]
+fn parse_italic() {
+    let input = "^italic(true)I'm just dim text^italic(false)";
+    println!("{}", parse(input));
+    assert!(parse(input)
+         == Ok(
+             vec![Italic(Some(true)),
+                  Literal("I'm just dim text".into_string()),
+                  Italic(Some(false)),
                   ]))
 }
