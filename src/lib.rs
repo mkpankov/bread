@@ -1,7 +1,7 @@
 extern crate term;
 
 use State::{Beginning, Tag, Inside, InsideColor};
-use Token::{Fg, Bg, Bold, Literal};
+use Token::{Fg, Bg, Bold, Dim, Reset, Literal};
 use term::{Terminal, WriterWrapper};
 use term::color::Color;
 
@@ -20,6 +20,8 @@ enum Token {
     Fg(Option<Color>),
     Bg(Option<Color>),
     Bold,
+    Dim,
+    Reset,
     Literal(String),
 }
 
@@ -37,7 +39,9 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                         Tag => return Err(format!("Expected lowercase letter or '(', found EOF")),
                         Inside => return Err(format!("Expected ')', found EOF")),
                         InsideColor => return Err(format!("Expected ')', found EOF")),
-                        Beginning => tokens.push(Literal(current.clone())),
+                        Beginning => if current.as_slice() != "" {
+                            tokens.push(Literal(current.clone()))
+                        }
                     }
                     break;
                 }
@@ -62,29 +66,30 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                                 current.grow(1, *i);
                             },
                             '(' => {
-                                let matched;
                                 match current.as_slice() {
-                                    "fg" | "bg" | "bold" => matched = true,
-                                    _ => return Err(format!("Expected fg or bg, found {}", current))
-                                }
-                                if matched {
-                                    match current.as_slice() {
-                                        "fg" => {
-                                            tokens.push(Fg(None));
-                                            state = InsideColor;
-                                        }
-                                        "bg" => {
-                                            tokens.push(Bg(None));
-                                            state = InsideColor;
-                                        }
-                                        "bold" => {
-                                            tokens.push(Bold);
-                                            state = Inside;
-                                        }
-                                        _ => unreachable!(),
+                                    "fg" => {
+                                        tokens.push(Fg(None));
+                                        state = InsideColor;
                                     }
-                                    current = String::new();
+                                    "bg" => {
+                                        tokens.push(Bg(None));
+                                        state = InsideColor;
+                                    }
+                                    "bold" => {
+                                        tokens.push(Bold);
+                                        state = Inside;
+                                    }
+                                    "dim" => {
+                                        tokens.push(Dim);
+                                        state = Inside;
+                                    }
+                                    "reset" => {
+                                        tokens.push(Reset);
+                                        state = Inside;
+                                    }
+                                    _ => return Err(format!("Expected a tag, found {}", current)),
                                 }
+                                current = String::new();
                             }
                             _   => {
                                   return Err(format!("Expected lowercase letter or '(', found {}. Current: {}, state: {}, tokens: {}", i, current, state, tokens));
@@ -171,6 +176,12 @@ pub fn render(term: &mut FullTerminal, s: &str) -> Result<(), String> {
                     &Bold => {
                         term.attr(term::attr::Bold).unwrap();
                     }
+                    &Dim => {
+                        term.attr(term::attr::Dim).unwrap();
+                    }
+                    &Reset => {
+                        term.reset().unwrap();
+                    }
                 }
             }
             Ok(term.reset().unwrap())
@@ -226,5 +237,28 @@ fn parse_fg_bg_bold_colors() {
                   Bg(Some(term::color::BLUE)),
                   Bold,
                   Literal("I'm bold bright green text".into_string()),
+                  ]))
+}
+
+#[test]
+fn parse_dim() {
+    let input = "^dim()I'm just dim text";
+    println!("{}", parse(input));
+    assert!(parse(input)
+         == Ok(
+             vec![Dim,
+                  Literal("I'm just dim text".into_string()),
+                  ]))
+}
+
+#[test]
+fn parse_reset() {
+    let input = "^fg(red)I'm just dim text^reset()";
+    println!("{}", parse(input));
+    assert!(parse(input)
+         == Ok(
+             vec![Fg(Some(term::color::RED)),
+                  Literal("I'm just dim text".into_string()),
+                  Reset,
                   ]))
 }
