@@ -1,7 +1,7 @@
 extern crate term;
 
-use State::{Beginning, Tag, Inside};
-use Token::{Fg, Bg, Literal};
+use State::{Beginning, Tag, Inside, InsideColor};
+use Token::{Fg, Bg, Bold, Literal};
 use term::{Terminal, WriterWrapper};
 use term::color::Color;
 
@@ -12,12 +12,14 @@ enum State {
     Beginning,
     Tag,
     Inside,
+    InsideColor,
 }
 
 #[deriving(Show, PartialEq, Eq)]
 enum Token {
     Fg(Option<Color>),
     Bg(Option<Color>),
+    Bold,
     Literal(String),
 }
 
@@ -34,6 +36,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                     match state {
                         Tag => return Err(format!("Expected lowercase letter or '(', found EOF")),
                         Inside => return Err(format!("Expected ')', found EOF")),
+                        InsideColor => return Err(format!("Expected ')', found EOF")),
                         Beginning => tokens.push(Literal(current.clone())),
                     }
                     break;
@@ -61,16 +64,25 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                             '(' => {
                                 let matched;
                                 match current.as_slice() {
-                                    "fg" | "bg" => matched = true,
+                                    "fg" | "bg" | "bold" => matched = true,
                                     _ => return Err(format!("Expected fg or bg, found {}", current))
                                 }
                                 if matched {
                                     match current.as_slice() {
-                                        "fg" => tokens.push(Fg(None)),
-                                        "bg" => tokens.push(Bg(None)),
+                                        "fg" => {
+                                            tokens.push(Fg(None));
+                                            state = InsideColor;
+                                        }
+                                        "bg" => {
+                                            tokens.push(Bg(None));
+                                            state = InsideColor;
+                                        }
+                                        "bold" => {
+                                            tokens.push(Bold);
+                                            state = Inside;
+                                        }
                                         _ => unreachable!(),
                                     }
-                                    state = Inside;
                                     current = String::new();
                                 }
                             }
@@ -79,6 +91,19 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                             }
                         },
                         Inside => {
+                            if current.as_slice() != "" {
+                                return Err(format!("Expected no arguments, found {}", current));
+                            }
+                            match *i {
+                                ')' => {
+                                    state = Beginning;
+                                }
+                                _   => {
+                                    return Err(format!("Expected ')', found {}", *i));
+                                }
+                            }
+                        }
+                        InsideColor => {
                             match *i {
                                 ')' => {
                                     state = Beginning;
@@ -116,7 +141,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                                     current = String::new();
                                 },
                                 _ => {
-                                    state = Inside;
+                                    state = InsideColor;
                                     current.grow(1, *i);
                                 },
                             }
@@ -142,6 +167,9 @@ pub fn render(term: &mut FullTerminal, s: &str) -> Result<(), String> {
                     }
                     &Bg(maybe_color) => {
                         term.bg(maybe_color.unwrap()).unwrap();
+                    }
+                    &Bold => {
+                        term.attr(term::attr::Bold).unwrap();
                     }
                 }
             }
@@ -186,4 +214,17 @@ fn parse_fg_bg_colors() {
                   Bg(Some(term::color::BRIGHT_BLACK)),
                   Fg(Some(term::color::BRIGHT_MAGENTA)),
                   Literal("I am bright magenta".into_string())]))
+}
+
+#[test]
+fn parse_fg_bg_bold_colors() {
+    let input = "^fg(bright-green)^bg(blue)^bold()I'm bold bright green text";
+    println!("{}", parse(input));
+    assert!(parse(input)
+         == Ok(
+             vec![Fg(Some(term::color::BRIGHT_GREEN)),
+                  Bg(Some(term::color::BLUE)),
+                  Bold,
+                  Literal("I'm bold bright green text".into_string()),
+                  ]))
 }
