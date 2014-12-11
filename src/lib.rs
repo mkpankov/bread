@@ -1,7 +1,7 @@
 extern crate term;
 
 use State::{Beginning, Tag, Inside, InsideColor, InsideBool};
-use Token::{Fg, Bg, Bold, Dim, Italic, Underline, Reset, Literal};
+use Token::{Fg, Bg, Bold, Dim, Italic, Underline, Blink, Reset, Literal};
 use term::{Terminal, WriterWrapper};
 use term::color::Color;
 
@@ -24,6 +24,7 @@ enum Token {
     Dim,
     Italic(Option<bool>),
     Underline(Option<bool>),
+    Blink,
     Reset,
     Literal(String),
 }
@@ -94,6 +95,10 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                                     "underline" => {
                                         tokens.push(Underline(None));
                                         state = InsideBool;
+                                    }
+                                    "blink" => {
+                                        tokens.push(Blink);
+                                        state = Inside;
                                     }
                                     "reset" => {
                                         tokens.push(Reset);
@@ -223,6 +228,9 @@ pub fn render(term: &mut FullTerminal, s: &str) -> Result<(), String> {
                     &Underline(maybe_value) => {
                         term.attr(term::attr::Underline(maybe_value.unwrap())).unwrap();
                     }
+                    &Blink => {
+                        term.attr(term::attr::Blink).unwrap();
+                    }
                     &Reset => {
                         term.reset().unwrap();
                     }
@@ -328,5 +336,17 @@ fn parse_underline() {
              vec![Underline(Some(true)),
                   Literal("I'm underlined text".into_string()),
                   Underline(Some(false)),
+                  ]))
+}
+
+#[test]
+fn parse_blink() {
+    let input = "^blink()I'm blinking text^reset()";
+    println!("{}", parse(input));
+    assert!(parse(input)
+         == Ok(
+             vec![Blink,
+                  Literal("I'm blinking text".into_string()),
+                  Reset,
                   ]))
 }

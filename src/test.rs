@@ -9,7 +9,8 @@ fn main() {
                  ^fg(bright-magenta)^bg(bright-black)^bold()I am bright magenta \
                  ^reset()^dim()I'm just dim \
                  ^reset()^italic(true)I'm italic ^italic(false)I'm not \
-                 ^reset()^underline(true)I'm underlined^underline(false)I'm not";
+                 ^reset()^underline(true)I'm underlined^underline(false)I'm not \
+                 ^reset()^blink()I blink";
     let mut t = term::stdout();
     match t {
         None => panic!("Couldn't get terminal"),
