@@ -1,7 +1,7 @@
 extern crate term;
 
 use State::{Beginning, Tag, Inside, InsideColor, InsideBool};
-use Token::{Fg, Bg, Bold, Dim, Italic, Reset, Literal};
+use Token::{Fg, Bg, Bold, Dim, Italic, Underline, Reset, Literal};
 use term::{Terminal, WriterWrapper};
 use term::color::Color;
 
@@ -23,6 +23,7 @@ enum Token {
     Bold,
     Dim,
     Italic(Option<bool>),
+    Underline(Option<bool>),
     Reset,
     Literal(String),
 }
@@ -90,6 +91,10 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                                         tokens.push(Italic(None));
                                         state = InsideBool;
                                     }
+                                    "underline" => {
+                                        tokens.push(Underline(None));
+                                        state = InsideBool;
+                                    }
                                     "reset" => {
                                         tokens.push(Reset);
                                         state = Inside;
@@ -130,7 +135,8 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                                         None => return Err(format!("Expected a tag token in array, found {}", maybe_last)),
                                         Some(token) => match token {
                                             Italic(_) => Italic(Some(value)),
-                                            _ => return Err(format!("Expected italic tag, found {}", token)),
+                                            Underline(_) => Underline(Some(value)),
+                                            _ => return Err(format!("Expected tag, found {}", token)),
                                         }
                                     })
                                 }
@@ -213,6 +219,9 @@ pub fn render(term: &mut FullTerminal, s: &str) -> Result<(), String> {
                     }
                     &Italic(maybe_value) => {
                         term.attr(term::attr::Italic(maybe_value.unwrap())).unwrap();
+                    }
+                    &Underline(maybe_value) => {
+                        term.attr(term::attr::Underline(maybe_value.unwrap())).unwrap();
                     }
                     &Reset => {
                         term.reset().unwrap();
@@ -307,5 +316,17 @@ fn parse_italic() {
              vec![Italic(Some(true)),
                   Literal("I'm just dim text".into_string()),
                   Italic(Some(false)),
+                  ]))
+}
+
+#[test]
+fn parse_underline() {
+    let input = "^underline(true)I'm underlined text^underline(false)";
+    println!("{}", parse(input));
+    assert!(parse(input)
+         == Ok(
+             vec![Underline(Some(true)),
+                  Literal("I'm underlined text".into_string()),
+                  Underline(Some(false)),
                   ]))
 }
