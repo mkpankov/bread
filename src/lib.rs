@@ -1,7 +1,8 @@
 extern crate term;
 
 use State::{Beginning, Tag, Inside, InsideColor, InsideBool};
-use Token::{Fg, Bg, Bold, Dim, Italic, Underline, Blink, Reset, Literal};
+use Token::{Fg, Bg, Bold, Dim, Italic, Underline, Blink, Standout, Reset,
+            Literal};
 use term::{Terminal, WriterWrapper};
 use term::color::Color;
 
@@ -25,6 +26,7 @@ enum Token {
     Italic(Option<bool>),
     Underline(Option<bool>),
     Blink,
+    Standout(Option<bool>),
     Reset,
     Literal(String),
 }
@@ -100,6 +102,10 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                                         tokens.push(Blink);
                                         state = Inside;
                                     }
+                                    "standout" => {
+                                        tokens.push(Standout(None));
+                                        state = InsideBool;
+                                    }
                                     "reset" => {
                                         tokens.push(Reset);
                                         state = Inside;
@@ -141,6 +147,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                                         Some(token) => match token {
                                             Italic(_) => Italic(Some(value)),
                                             Underline(_) => Underline(Some(value)),
+                                            Standout(_) => Standout(Some(value)),
                                             _ => return Err(format!("Expected tag, found {}", token)),
                                         }
                                     })
@@ -230,6 +237,9 @@ pub fn render(term: &mut FullTerminal, s: &str) -> Result<(), String> {
                     }
                     &Blink => {
                         term.attr(term::attr::Blink).unwrap();
+                    }
+                    &Standout(maybe_value) => {
+                        term.attr(term::attr::Standout(maybe_value.unwrap())).unwrap();
                     }
                     &Reset => {
                         term.reset().unwrap();
@@ -348,5 +358,17 @@ fn parse_blink() {
              vec![Blink,
                   Literal("I'm blinking text".into_string()),
                   Reset,
+                  ]))
+}
+
+#[test]
+fn parse_standout() {
+    let input = "^standout(true)I'm standing out text^standout(false)";
+    println!("{}", parse(input));
+    assert!(parse(input)
+         == Ok(
+             vec![Standout(Some(true)),
+                  Literal("I'm standing out text".into_string()),
+                  Standout(Some(false)),
                   ]))
 }
