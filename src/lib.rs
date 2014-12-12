@@ -1,7 +1,9 @@
 extern crate term;
 
 use State::{Beginning, Tag, Inside, InsideColor, InsideBool};
-use Token::{Fg, Bg, Bold, Dim, Italic, Underline, Blink, Standout, Reset,
+use Token::{Fg, Bg, Bold, Dim, Italic, Underline, Blink, Standout,
+            Reverse,
+            Reset,
             Literal};
 use term::{Terminal, WriterWrapper};
 use term::color::Color;
@@ -27,6 +29,7 @@ enum Token {
     Underline(Option<bool>),
     Blink,
     Standout(Option<bool>),
+    Reverse,
     Reset,
     Literal(String),
 }
@@ -105,6 +108,10 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                                     "standout" => {
                                         tokens.push(Standout(None));
                                         state = InsideBool;
+                                    }
+                                    "reverse" => {
+                                        tokens.push(Reverse);
+                                        state = Inside;
                                     }
                                     "reset" => {
                                         tokens.push(Reset);
@@ -241,6 +248,9 @@ pub fn render(term: &mut FullTerminal, s: &str) -> Result<(), String> {
                     &Standout(maybe_value) => {
                         term.attr(term::attr::Standout(maybe_value.unwrap())).unwrap();
                     }
+                    &Reverse => {
+                        term.attr(term::attr::Reverse).unwrap();
+                    }
                     &Reset => {
                         term.reset().unwrap();
                     }
@@ -370,5 +380,17 @@ fn parse_standout() {
              vec![Standout(Some(true)),
                   Literal("I'm standing out text".into_string()),
                   Standout(Some(false)),
+                  ]))
+}
+
+#[test]
+fn parse_reverse() {
+    let input = "^reverse()I'm reversed text^reset()";
+    println!("{}", parse(input));
+    assert!(parse(input)
+         == Ok(
+             vec![Reverse,
+                  Literal("I'm reversed text".into_string()),
+                  Reset,
                   ]))
 }

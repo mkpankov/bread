@@ -11,7 +11,8 @@ fn main() {
                  ^reset()^italic(true)I'm italic ^italic(false)I'm not \
                  ^reset()^underline(true)I'm underlined^underline(false)I'm not \
                  ^reset()^blink()I blink \
-                 ^reset()^standout(true)I stand out^standout(false)I don't";
+                 ^reset()^standout(true)I stand out^standout(false)I don't \
+                 ^reset()^reverse()I'm reversed^reset()I'm not";
     let mut t = term::stdout();
     match t {
         None => panic!("Couldn't get terminal"),
