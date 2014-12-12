@@ -2,7 +2,7 @@ extern crate term;
 
 use State::{Beginning, Tag, Inside, InsideColor, InsideBool};
 use Token::{Fg, Bg, Bold, Dim, Italic, Underline, Blink, Standout,
-            Reverse,
+            Reverse, Secure,
             Reset,
             Literal};
 use term::{Terminal, WriterWrapper};
@@ -30,6 +30,7 @@ enum Token {
     Blink,
     Standout(Option<bool>),
     Reverse,
+    Secure,
     Reset,
     Literal(String),
 }
@@ -111,6 +112,10 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                                     }
                                     "reverse" => {
                                         tokens.push(Reverse);
+                                        state = Inside;
+                                    }
+                                    "secure" => {
+                                        tokens.push(Secure);
                                         state = Inside;
                                     }
                                     "reset" => {
@@ -250,6 +255,9 @@ pub fn render(term: &mut FullTerminal, s: &str) -> Result<(), String> {
                     }
                     &Reverse => {
                         term.attr(term::attr::Reverse).unwrap();
+                    }
+                    &Secure => {
+                        term.attr(term::attr::Secure).unwrap();
                     }
                     &Reset => {
                         term.reset().unwrap();
@@ -391,6 +399,18 @@ fn parse_reverse() {
          == Ok(
              vec![Reverse,
                   Literal("I'm reversed text".into_string()),
+                  Reset,
+                  ]))
+}
+
+#[test]
+fn parse_secure() {
+    let input = "^secure()I'm secure text^reset()";
+    println!("{}", parse(input));
+    assert!(parse(input)
+         == Ok(
+             vec![Secure,
+                  Literal("I'm secure text".into_string()),
                   Reset,
                   ]))
 }
