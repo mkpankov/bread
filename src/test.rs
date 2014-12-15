@@ -1,29 +1,8 @@
 extern crate bread;
 extern crate term;
 
-use bread::Token::{Fg, Bg, Bold, Dim, Italic, Underline, Blink, Standout,
-                   Reverse, Secure,
-                   Reset,
-                   Literal};
-use bread::Color;
-use bread::{
-    BLACK,
-    BLUE,
-    BRIGHT_BLACK,
-    BRIGHT_BLUE,
-    BRIGHT_CYAN,
-    BRIGHT_GREEN,
-    BRIGHT_MAGENTA,
-    BRIGHT_RED,
-    BRIGHT_WHITE,
-    BRIGHT_YELLOW,
-    CYAN,
-    GREEN,
-    MAGENTA,
-    RED,
-    WHITE,
-    YELLOW,
-};
+use bread::Token as T;
+use bread as B;
 use bread::{render_str, render};
 
 fn main() {
@@ -43,7 +22,7 @@ fn main() {
         Some(ref mut t) => render_str(t, input).unwrap(),
     };
 
-    let tokens = vec![Fg(Some(RED)), Literal("I'm red".into_string()), Reset];
+    let tokens = vec![T::Fg(Some(B::RED)), T::Literal("I'm red".into_string()), T::Reset];
     match t {
         None => panic!("Couldn't get terminal"),
         Some(ref mut t) => render(t, tokens),
