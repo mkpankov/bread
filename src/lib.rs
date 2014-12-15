@@ -239,7 +239,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
     Ok(tokens)
 }
 
-pub fn render(term: &mut FullTerminal, tokens: Vec<Token>) {
+pub fn render(term: &mut FullTerminal, tokens: &[Token]) {
     for t in tokens.iter() {
         match t {
             &Literal(ref string) => write!(term, "{}", string).unwrap(),
@@ -286,7 +286,7 @@ pub fn render_str(term: &mut FullTerminal, s: &str) -> Result<(), String> {
     match maybe_tokens {
         Err(string) => return Err(string),
         Ok(tokens) => {
-            Ok(render(term, tokens))
+            Ok(render(term, tokens.as_slice()))
         }
     }
 }
