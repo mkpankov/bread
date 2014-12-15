@@ -10,33 +10,18 @@ We're going to use formatting syntax of Dzen (https://github.com/robm/dzen). Som
 ## List of currently supported colors
 
 * black
-
 * blue
-
 * bright-black
-
 * bright-blue
-
 * bright-cyan
-
 * bright-green
-
 * bright-magenta
-
 * bright-red
-
 * bright-white
-
 * bright-yellow
-
 * cyan
-
 * green
-
 * magenta
-
 * red
-
 * white
-
 * yellow
