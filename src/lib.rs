@@ -6,7 +6,25 @@ use Token::{Fg, Bg, Bold, Dim, Italic, Underline, Blink, Standout,
             Reset,
             Literal};
 use term::{Terminal, WriterWrapper};
-use term::color::Color;
+pub use term::color::Color as Color;
+pub use term::color::{
+    BLACK,
+    BLUE,
+    BRIGHT_BLACK,
+    BRIGHT_BLUE,
+    BRIGHT_CYAN,
+    BRIGHT_GREEN,
+    BRIGHT_MAGENTA,
+    BRIGHT_RED,
+    BRIGHT_WHITE,
+    BRIGHT_YELLOW,
+    CYAN,
+    GREEN,
+    MAGENTA,
+    RED,
+    WHITE,
+    YELLOW,
+};
 
 pub type FullTerminal = Box<Terminal<WriterWrapper> + Send>;
 
@@ -20,7 +38,7 @@ enum State {
 }
 
 #[deriving(Show, PartialEq, Eq)]
-enum Token {
+pub enum Token {
     Fg(Option<Color>),
     Bg(Option<Color>),
     Bold,
@@ -221,50 +239,54 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
     Ok(tokens)
 }
 
-pub fn render(term: &mut FullTerminal, s: &str) -> Result<(), String> {
+pub fn render(term: &mut FullTerminal, tokens: Vec<Token>) {
+    for t in tokens.iter() {
+        match t {
+            &Literal(ref string) => write!(term, "{}", string).unwrap(),
+            &Fg(maybe_color) => {
+                term.fg(maybe_color.unwrap()).unwrap();
+            }
+            &Bg(maybe_color) => {
+                term.bg(maybe_color.unwrap()).unwrap();
+            }
+            &Bold => {
+                term.attr(term::attr::Bold).unwrap();
+            }
+            &Dim => {
+                term.attr(term::attr::Dim).unwrap();
+            }
+            &Italic(maybe_value) => {
+                term.attr(term::attr::Italic(maybe_value.unwrap())).unwrap();
+            }
+            &Underline(maybe_value) => {
+                term.attr(term::attr::Underline(maybe_value.unwrap())).unwrap();
+            }
+            &Blink => {
+                term.attr(term::attr::Blink).unwrap();
+            }
+            &Standout(maybe_value) => {
+                term.attr(term::attr::Standout(maybe_value.unwrap())).unwrap();
+            }
+            &Reverse => {
+                term.attr(term::attr::Reverse).unwrap();
+            }
+            &Secure => {
+                term.attr(term::attr::Secure).unwrap();
+            }
+            &Reset => {
+                term.reset().unwrap();
+            }
+        }
+    }
+    term.reset().unwrap();
+}
+
+pub fn render_str(term: &mut FullTerminal, s: &str) -> Result<(), String> {
     let maybe_tokens = parse(s);
     match maybe_tokens {
         Err(string) => return Err(string),
         Ok(tokens) => {
-            for t in tokens.iter() {
-                match t {
-                    &Literal(ref string) => write!(term, "{}", string).unwrap(),
-                    &Fg(maybe_color) => {
-                        term.fg(maybe_color.unwrap()).unwrap();
-                    }
-                    &Bg(maybe_color) => {
-                        term.bg(maybe_color.unwrap()).unwrap();
-                    }
-                    &Bold => {
-                        term.attr(term::attr::Bold).unwrap();
-                    }
-                    &Dim => {
-                        term.attr(term::attr::Dim).unwrap();
-                    }
-                    &Italic(maybe_value) => {
-                        term.attr(term::attr::Italic(maybe_value.unwrap())).unwrap();
-                    }
-                    &Underline(maybe_value) => {
-                        term.attr(term::attr::Underline(maybe_value.unwrap())).unwrap();
-                    }
-                    &Blink => {
-                        term.attr(term::attr::Blink).unwrap();
-                    }
-                    &Standout(maybe_value) => {
-                        term.attr(term::attr::Standout(maybe_value.unwrap())).unwrap();
-                    }
-                    &Reverse => {
-                        term.attr(term::attr::Reverse).unwrap();
-                    }
-                    &Secure => {
-                        term.attr(term::attr::Secure).unwrap();
-                    }
-                    &Reset => {
-                        term.reset().unwrap();
-                    }
-                }
-            }
-            Ok(term.reset().unwrap())
+            Ok(render(term, tokens))
         }
     }
 }
