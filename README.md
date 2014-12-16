@@ -42,3 +42,9 @@ to `Cargo.toml` and you should be good to go.
 ## Demo
 
 [![Demo](https://raw.githubusercontent.com/mkpankov/bread/master/show.gif)](https://github.com/mkpankov/bread)
+
+## Feedback
+
+I'm a newbie with Rust, so please don't hesitate to suggest any improvement to the library, be it a code review, bug report, or feature request.
+
+I'd really appreciate code review by a mature Rustacean. In case you're willing to do it (it's just 200+ lines!), please send your comments to work at michaelpankov dot com.
