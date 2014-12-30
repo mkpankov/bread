@@ -57,185 +57,177 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
     let mut state = Beginning;
     let mut current = String::new();
     let mut tokens = vec![];
-    let mut iter = s.chars().peekable();
-    loop {
-        {
-            let n = iter.peek();
-            match n {
-                None => {
-                    match state {
-                        Tag => return Err(format!("Expected lowercase letter or '(', found EOF")),
-                        Inside => return Err(format!("Expected ')', found EOF")),
-                        InsideColor => return Err(format!("Expected ')', found EOF")),
-                        InsideBool => return Err(format!("Expected ')', found EOF")),
-                        Beginning => if current.as_slice() != "" {
-                            tokens.push(Literal(current.clone()))
-                        }
+    for i in s.chars() {
+        match state {
+            Beginning => match i {
+                '^' => {
+                    state = Tag;
+                    if current.as_slice() != "" {
+                        tokens.push(Literal(current.clone()));
                     }
-                    break;
+                    current = String::new();
+                },
+                _   => {
+                    state = Beginning;
+                    current.grow(1, i);
+                },
+            },
+            Tag => match i {
+                'a'...'z' | '-' => {
+                    state = Tag;
+                    current.grow(1, i);
+                },
+                '(' => {
+                    match current.as_slice() {
+                        "fg" => {
+                            tokens.push(Fg(None));
+                            state = InsideColor;
+                        }
+                        "bg" => {
+                            tokens.push(Bg(None));
+                            state = InsideColor;
+                        }
+                        "bold" => {
+                            tokens.push(Bold);
+                            state = Inside;
+                        }
+                        "dim" => {
+                            tokens.push(Dim);
+                            state = Inside;
+                        }
+                        "italic" => {
+                            tokens.push(Italic(None));
+                            state = InsideBool;
+                        }
+                        "underline" => {
+                            tokens.push(Underline(None));
+                            state = InsideBool;
+                        }
+                        "blink" => {
+                            tokens.push(Blink);
+                            state = Inside;
+                        }
+                        "standout" => {
+                            tokens.push(Standout(None));
+                            state = InsideBool;
+                        }
+                        "reverse" => {
+                            tokens.push(Reverse);
+                            state = Inside;
+                        }
+                        "secure" => {
+                            tokens.push(Secure);
+                            state = Inside;
+                        }
+                        "reset" => {
+                            tokens.push(Reset);
+                            state = Inside;
+                        }
+                        _ => return Err(format!("Expected a tag, found {}", current)),
+                    }
+                    current = String::new();
                 }
-                Some(i) =>
-                    match state {
-                        Beginning => match *i {
-                            '^' => {
-                                state = Tag;
-                                if current.as_slice() != "" {
-                                    tokens.push(Literal(current.clone()));
-                                }
-                                current = String::new();
-                            },
-                            _   => {
-                                state = Beginning;
-                                current.grow(1, *i);
-                            },
-                        },
-                        Tag => match *i {
-                            'a'...'z' | '-' => {
-                                state = Tag;
-                                current.grow(1, *i);
-                            },
-                            '(' => {
-                                match current.as_slice() {
-                                    "fg" => {
-                                        tokens.push(Fg(None));
-                                        state = InsideColor;
-                                    }
-                                    "bg" => {
-                                        tokens.push(Bg(None));
-                                        state = InsideColor;
-                                    }
-                                    "bold" => {
-                                        tokens.push(Bold);
-                                        state = Inside;
-                                    }
-                                    "dim" => {
-                                        tokens.push(Dim);
-                                        state = Inside;
-                                    }
-                                    "italic" => {
-                                        tokens.push(Italic(None));
-                                        state = InsideBool;
-                                    }
-                                    "underline" => {
-                                        tokens.push(Underline(None));
-                                        state = InsideBool;
-                                    }
-                                    "blink" => {
-                                        tokens.push(Blink);
-                                        state = Inside;
-                                    }
-                                    "standout" => {
-                                        tokens.push(Standout(None));
-                                        state = InsideBool;
-                                    }
-                                    "reverse" => {
-                                        tokens.push(Reverse);
-                                        state = Inside;
-                                    }
-                                    "secure" => {
-                                        tokens.push(Secure);
-                                        state = Inside;
-                                    }
-                                    "reset" => {
-                                        tokens.push(Reset);
-                                        state = Inside;
-                                    }
-                                    _ => return Err(format!("Expected a tag, found {}", current)),
-                                }
-                                current = String::new();
-                            }
-                            _   => {
-                                  return Err(format!("Expected lowercase letter or '(', found {}. Current: {}, state: {}, tokens: {}", i, current, state, tokens));
-                            }
-                        },
-                        Inside => {
-                            if current.as_slice() != "" {
-                                return Err(format!("Expected no arguments, found {}", current));
-                            }
-                            match *i {
-                                ')' => {
-                                    state = Beginning;
-                                }
-                                _   => {
-                                    return Err(format!("Expected ')', found {}", *i));
-                                }
-                            }
+                  _ => {
+                      return Err(format!("Expected lowercase letter or '(', found {}. Current: {}, state: {}, tokens: {}", i, current, state, tokens));
+                  }
+                },
+                Inside => {
+                    if current.as_slice() != "" {
+                        return Err(format!("Expected no arguments, found {}", current));
+                    }
+                    match i {
+                        ')' => {
+                            state = Beginning;
                         }
-                        InsideBool => {
-                            match *i {
-                                ')' => {
-                                    state = Beginning;
-                                    let value = match current.as_slice() {
-                                        "true" => true,
-                                        "false" => false,
-                                        _ => return Err(format!("Expected bool, found {}", current)),
-                                    };
-                                    let maybe_last = tokens.pop();
-                                    current = String::new();
-                                    tokens.push(match maybe_last {
-                                        None => return Err(format!("Expected a tag token in array, found {}", maybe_last)),
-                                        Some(token) => match token {
-                                            Italic(_) => Italic(Some(value)),
-                                            Underline(_) => Underline(Some(value)),
-                                            Standout(_) => Standout(Some(value)),
-                                            _ => return Err(format!("Expected tag, found {}", token)),
-                                        }
-                                    })
-                                }
-                                _ => {
-                                    state = InsideBool;
-                                    current.grow(1, *i);
-                                },
-                            }
+                    _   => {
+                            return Err(format!("Expected ')', found {}", i));
                         }
-                        InsideColor => {
-                            match *i {
-                                ')' => {
-                                    state = Beginning;
-                                    let color = match current.as_slice() {
-                                        "black" => term::color::BLACK,
-                                        "blue" => term::color::BLUE,
-                                        "bright-black" => term::color::BRIGHT_BLACK,
-                                        "bright-blue" => term::color::BRIGHT_BLUE,
-                                        "bright-cyan" => term::color::BRIGHT_CYAN,
-                                        "bright-green" => term::color::BRIGHT_GREEN,
-                                        "bright-magenta" => term::color::BRIGHT_MAGENTA,
-                                        "bright-red" => term::color::BRIGHT_RED,
-                                        "bright-white" => term::color::BRIGHT_WHITE,
-                                        "bright-yellow" => term::color::BRIGHT_YELLOW,
-                                        "cyan" => term::color::CYAN,
-                                        "green" => term::color::GREEN,
-                                        "magenta" => term::color::MAGENTA,
-                                        "red" => term::color::RED,
-                                        "white" => term::color::WHITE,
-                                        "yellow" => term::color::YELLOW,
-
-                                        _ => return Err(format!("Expected color name, found {}", current)),
-                                    };
-                                    let maybe_last = tokens.pop();
-                                    tokens.push(match maybe_last {
-                                        None => return Err(format!("Expected a tag token in array, found {}", maybe_last)),
-                                        Some(token) => {
-                                            match token {
-                                                Fg(_) => Fg(Some(color)),
-                                                Bg(_) => Bg(Some(color)),
-                                                _ => unreachable!(),
-                                            }
-                                        }
-                                    });
-                                    current = String::new();
-                                },
-                                _ => {
-                                    state = InsideColor;
-                                    current.grow(1, *i);
-                                },
-                            }
+                    }
+                }
+                InsideBool => {
+                    match i {
+                        ')' => {
+                        state = Beginning;
+                        let value = match current.as_slice() {
+                            "true" => true,
+                            "false" => false,
+                            _ => return Err(format!("Expected bool, found {}", current)),
+                        };
+                        let maybe_last = tokens.pop();
+                        current = String::new();
+                        tokens.push(
+                            match maybe_last {
+                                None => return Err(format!("Expected a tag token in array, found {}", maybe_last)),
+                                Some(token) => match token {
+                                    Italic(_) => Italic(Some(value)),
+                                    Underline(_) => Underline(Some(value)),
+                                    Standout(_) => Standout(Some(value)),
+                                    _ => return Err(format!("Expected tag, found {}", token)),
+                                }
+                            })
+                        }
+                        _ => {
+                            state = InsideBool;
+                            current.grow(1, i);
                         },
                     }
-            }
+                }
+                InsideColor => {
+                    match i {
+                        ')' => {
+                        state = Beginning;
+                        let color = match current.as_slice() {
+                            "black" => term::color::BLACK,
+                            "blue" => term::color::BLUE,
+                            "bright-black" => term::color::BRIGHT_BLACK,
+                            "bright-blue" => term::color::BRIGHT_BLUE,
+                            "bright-cyan" => term::color::BRIGHT_CYAN,
+                            "bright-green" => term::color::BRIGHT_GREEN,
+                            "bright-magenta" => term::color::BRIGHT_MAGENTA,
+                            "bright-red" => term::color::BRIGHT_RED,
+                            "bright-white" => term::color::BRIGHT_WHITE,
+                            "bright-yellow" => term::color::BRIGHT_YELLOW,
+                            "cyan" => term::color::CYAN,
+                            "green" => term::color::GREEN,
+                            "magenta" => term::color::MAGENTA,
+                            "red" => term::color::RED,
+                            "white" => term::color::WHITE,
+                            "yellow" => term::color::YELLOW,
+
+                            _ => return Err(format!("Expected color name, found {}", current)),
+                        };
+                        let maybe_last = tokens.pop();
+                        tokens.push(match maybe_last {
+                            None => return Err(format!("Expected a tag token in array, found {}", maybe_last)),
+                            Some(token) => {
+                                match token {
+                                    Fg(_) => Fg(Some(color)),
+                                    Bg(_) => Bg(Some(color)),
+                                    _ => unreachable!(),
+                                }
+                            }
+                        });
+                        current = String::new();
+                    },
+                    _ => {
+                        state = InsideColor;
+                        current.grow(1, i);
+                    },
+                }
+            },
+
         }
-        iter.next();
     }
+    match state {
+        Tag => return Err(format!("Expected lowercase letter or '(', found EOF")),
+        Inside => return Err(format!("Expected ')', found EOF")),
+        InsideColor => return Err(format!("Expected ')', found EOF")),
+        InsideBool => return Err(format!("Expected ')', found EOF")),
+        Beginning => if current.as_slice() != "" {
+            tokens.push(Literal(current.clone()))
+        }
+    }
+
     Ok(tokens)
 }
 
