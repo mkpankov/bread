@@ -233,39 +233,39 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
 
 pub fn render(term: &mut FullTerminal, tokens: &[Token]) {
     for t in tokens.iter() {
-        match t {
-            &Literal(ref string) => write!(term, "{}", string).unwrap(),
-            &Fg(maybe_color) => {
+        match *t {
+            Literal(ref string) => write!(term, "{}", string).unwrap(),
+            Fg(maybe_color) => {
                 term.fg(maybe_color.unwrap()).unwrap();
             }
-            &Bg(maybe_color) => {
+            Bg(maybe_color) => {
                 term.bg(maybe_color.unwrap()).unwrap();
             }
-            &Bold => {
+            Bold => {
                 term.attr(term::attr::Bold).unwrap();
             }
-            &Dim => {
+            Dim => {
                 term.attr(term::attr::Dim).unwrap();
             }
-            &Italic(maybe_value) => {
+            Italic(maybe_value) => {
                 term.attr(term::attr::Italic(maybe_value.unwrap())).unwrap();
             }
-            &Underline(maybe_value) => {
+            Underline(maybe_value) => {
                 term.attr(term::attr::Underline(maybe_value.unwrap())).unwrap();
             }
-            &Blink => {
+            Blink => {
                 term.attr(term::attr::Blink).unwrap();
             }
-            &Standout(maybe_value) => {
+            Standout(maybe_value) => {
                 term.attr(term::attr::Standout(maybe_value.unwrap())).unwrap();
             }
-            &Reverse => {
+            Reverse => {
                 term.attr(term::attr::Reverse).unwrap();
             }
-            &Secure => {
+            Secure => {
                 term.attr(term::attr::Secure).unwrap();
             }
-            &Reset => {
+            Reset => {
                 term.reset().unwrap();
             }
         }
