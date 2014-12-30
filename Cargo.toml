@@ -31,7 +31,3 @@ license = "GPL-3.0"
 # lieu of the above key and must point to a file relative to this manifest
 # (similar to the readme key)
 #license-file = "..."
-
-[[bin]]
-name = "test"
-path = "src/test.rs"
