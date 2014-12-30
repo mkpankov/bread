@@ -282,13 +282,8 @@ pub fn render(term: &mut FullTerminal, tokens: &[Token]) {
 }
 
 pub fn render_str(term: &mut FullTerminal, s: &str) -> Result<(), String> {
-    let maybe_tokens = parse(s);
-    match maybe_tokens {
-        Err(string) => return Err(string),
-        Ok(tokens) => {
-            Ok(render(term, tokens.as_slice()))
-        }
-    }
+    let tokens = try!(parse(s));
+    Ok(render(term, tokens.as_slice()))
 }
 
 #[test]
