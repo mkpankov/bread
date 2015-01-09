@@ -28,7 +28,7 @@ pub use term::color::{
 
 pub type FullTerminal = Box<Terminal<WriterWrapper> + Send>;
 
-#[deriving(Show)]
+#[derive(Show)]
 enum State {
     Beginning,
     Tag,
@@ -37,7 +37,7 @@ enum State {
     InsideBool,
 }
 
-#[deriving(Show, PartialEq, Eq)]
+#[derive(Show, PartialEq, Eq)]
 pub enum Token {
     Fg(Option<Color>),
     Bg(Option<Color>),
@@ -69,13 +69,13 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                 },
                 _   => {
                     state = Beginning;
-                    current.grow(1, i);
+                    current.push(i);
                 },
             },
             Tag => match i {
                 'a'...'z' | '-' => {
                     state = Tag;
-                    current.grow(1, i);
+                    current.push(i);
                 },
                 '(' => {
                     match current.as_slice() {
@@ -128,7 +128,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                     current = String::new();
                 }
                   _ => {
-                      return Err(format!("Expected lowercase letter or '(', found {}. Current: {}, state: {}, tokens: {}", i, current, state, tokens));
+                      return Err(format!("Expected lowercase letter or '(', found {}. Current: {}, state: {:?}, tokens: {:?}", i, current, state, tokens));
                   }
                 },
                 Inside => {
@@ -157,18 +157,18 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                         current = String::new();
                         tokens.push(
                             match maybe_last {
-                                None => return Err(format!("Expected a tag token in array, found {}", maybe_last)),
+                                None => return Err(format!("Expected a tag token in array, found {:?}", maybe_last)),
                                 Some(token) => match token {
                                     Italic(_) => Italic(Some(value)),
                                     Underline(_) => Underline(Some(value)),
                                     Standout(_) => Standout(Some(value)),
-                                    _ => return Err(format!("Expected tag, found {}", token)),
+                                    _ => return Err(format!("Expected tag, found {:?}", token)),
                                 }
                             })
                         }
                         _ => {
                             state = InsideBool;
-                            current.grow(1, i);
+                            current.push(i);
                         },
                     }
                 }
@@ -198,7 +198,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                         };
                         let maybe_last = tokens.pop();
                         tokens.push(match maybe_last {
-                            None => return Err(format!("Expected a tag token in array, found {}", maybe_last)),
+                            None => return Err(format!("Expected a tag token in array, found {:?}", maybe_last)),
                             Some(token) => {
                                 match token {
                                     Fg(_) => Fg(Some(color)),
@@ -211,7 +211,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                     },
                     _ => {
                         state = InsideColor;
-                        current.grow(1, i);
+                        current.push(i);
                     },
                 }
             },
@@ -281,73 +281,73 @@ pub fn render_str(term: &mut FullTerminal, s: &str) -> Result<(), String> {
 #[test]
 fn parse_fg_two_colors() {
     let input = "^fg(red)I'm red text ^fg(blue)I am blue";
-    println!("{}", parse(input));
+    println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
              vec![Fg(Some(term::color::RED)),
-                  Literal("I'm red text ".into_string()),
+                  Literal("I'm red text ".to_string()),
                   Fg(Some(term::color::BLUE)),
-                  Literal("I am blue".into_string())]))
+                  Literal("I am blue".to_string())]))
 }
 
 #[test]
 fn parse_fg_colors_bright() {
     let input = "^fg(bright-green)I'm bright green text ^fg(bright-magenta)I am bright magenta";
-    println!("{}", parse(input));
+    println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
              vec![Fg(Some(term::color::BRIGHT_GREEN)),
-                  Literal("I'm bright green text ".into_string()),
+                  Literal("I'm bright green text ".to_string()),
                   Fg(Some(term::color::BRIGHT_MAGENTA)),
-                  Literal("I am bright magenta".into_string())]))
+                  Literal("I am bright magenta".to_string())]))
 }
 
 #[test]
 fn parse_fg_bg_colors() {
     let input = "^fg(bright-green)^bg(blue)I'm bright green text ^bg(bright-black)^fg(bright-magenta)I am bright magenta";
-    println!("{}", parse(input));
+    println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
              vec![Fg(Some(term::color::BRIGHT_GREEN)),
                   Bg(Some(term::color::BLUE)),
-                  Literal("I'm bright green text ".into_string()),
+                  Literal("I'm bright green text ".to_string()),
                   Bg(Some(term::color::BRIGHT_BLACK)),
                   Fg(Some(term::color::BRIGHT_MAGENTA)),
-                  Literal("I am bright magenta".into_string())]))
+                  Literal("I am bright magenta".to_string())]))
 }
 
 #[test]
 fn parse_fg_bg_bold_colors() {
     let input = "^fg(bright-green)^bg(blue)^bold()I'm bold bright green text";
-    println!("{}", parse(input));
+    println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
              vec![Fg(Some(term::color::BRIGHT_GREEN)),
                   Bg(Some(term::color::BLUE)),
                   Bold,
-                  Literal("I'm bold bright green text".into_string()),
+                  Literal("I'm bold bright green text".to_string()),
                   ]))
 }
 
 #[test]
 fn parse_dim() {
     let input = "^dim()I'm just dim text";
-    println!("{}", parse(input));
+    println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
              vec![Dim,
-                  Literal("I'm just dim text".into_string()),
+                  Literal("I'm just dim text".to_string()),
                   ]))
 }
 
 #[test]
 fn parse_reset() {
     let input = "^fg(red)I'm just dim text^reset()";
-    println!("{}", parse(input));
+    println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
              vec![Fg(Some(term::color::RED)),
-                  Literal("I'm just dim text".into_string()),
+                  Literal("I'm just dim text".to_string()),
                   Reset,
                   ]))
 }
@@ -355,11 +355,11 @@ fn parse_reset() {
 #[test]
 fn parse_italic() {
     let input = "^italic(true)I'm just dim text^italic(false)";
-    println!("{}", parse(input));
+    println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
              vec![Italic(Some(true)),
-                  Literal("I'm just dim text".into_string()),
+                  Literal("I'm just dim text".to_string()),
                   Italic(Some(false)),
                   ]))
 }
@@ -367,11 +367,11 @@ fn parse_italic() {
 #[test]
 fn parse_underline() {
     let input = "^underline(true)I'm underlined text^underline(false)";
-    println!("{}", parse(input));
+    println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
              vec![Underline(Some(true)),
-                  Literal("I'm underlined text".into_string()),
+                  Literal("I'm underlined text".to_string()),
                   Underline(Some(false)),
                   ]))
 }
@@ -379,11 +379,11 @@ fn parse_underline() {
 #[test]
 fn parse_blink() {
     let input = "^blink()I'm blinking text^reset()";
-    println!("{}", parse(input));
+    println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
              vec![Blink,
-                  Literal("I'm blinking text".into_string()),
+                  Literal("I'm blinking text".to_string()),
                   Reset,
                   ]))
 }
@@ -391,11 +391,11 @@ fn parse_blink() {
 #[test]
 fn parse_standout() {
     let input = "^standout(true)I'm standing out text^standout(false)";
-    println!("{}", parse(input));
+    println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
              vec![Standout(Some(true)),
-                  Literal("I'm standing out text".into_string()),
+                  Literal("I'm standing out text".to_string()),
                   Standout(Some(false)),
                   ]))
 }
@@ -403,11 +403,11 @@ fn parse_standout() {
 #[test]
 fn parse_reverse() {
     let input = "^reverse()I'm reversed text^reset()";
-    println!("{}", parse(input));
+    println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
              vec![Reverse,
-                  Literal("I'm reversed text".into_string()),
+                  Literal("I'm reversed text".to_string()),
                   Reset,
                   ]))
 }
@@ -415,11 +415,11 @@ fn parse_reverse() {
 #[test]
 fn parse_secure() {
     let input = "^secure()I'm secure text^reset()";
-    println!("{}", parse(input));
+    println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
              vec![Secure,
-                  Literal("I'm secure text".into_string()),
+                  Literal("I'm secure text".to_string()),
                   Reset,
                   ]))
 }
