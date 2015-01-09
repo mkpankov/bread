@@ -62,7 +62,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
             Beginning => match i {
                 '^' => {
                     state = Tag;
-                    if current.as_slice() != "" {
+                    if &*current != "" {
                         tokens.push(Literal(current.clone()));
                     }
                     current = String::new();
@@ -78,7 +78,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                     current.push(i);
                 },
                 '(' => {
-                    match current.as_slice() {
+                    match &*current {
                         "fg" => {
                             tokens.push(Fg(None));
                             state = InsideColor;
@@ -132,7 +132,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                   }
                 },
                 Inside => {
-                    if current.as_slice() != "" {
+                    if &*current != "" {
                         return Err(format!("Expected no arguments, found {}", current));
                     }
                     match i {
@@ -148,7 +148,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                     match i {
                         ')' => {
                         state = Beginning;
-                        let value = match current.as_slice() {
+                        let value = match &*current {
                             "true" => true,
                             "false" => false,
                             _ => return Err(format!("Expected bool, found {}", current)),
@@ -176,7 +176,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                     match i {
                         ')' => {
                         state = Beginning;
-                        let color = match current.as_slice() {
+                        let color = match &*current {
                             "black" => term::color::BLACK,
                             "blue" => term::color::BLUE,
                             "bright-black" => term::color::BRIGHT_BLACK,
@@ -223,7 +223,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
         Inside => return Err(format!("Expected ')', found EOF")),
         InsideColor => return Err(format!("Expected ')', found EOF")),
         InsideBool => return Err(format!("Expected ')', found EOF")),
-        Beginning => if current.as_slice() != "" {
+        Beginning => if &*current != "" {
             tokens.push(Literal(current.clone()))
         }
     }
@@ -275,7 +275,7 @@ pub fn render(trm: &mut FullTerminal, tokens: &[Token]) {
 
 pub fn render_str(term: &mut FullTerminal, s: &str) -> Result<(), String> {
     let tokens = try!(parse(s));
-    Ok(render(term, tokens.as_slice()))
+    Ok(render(term, &*tokens))
 }
 
 #[test]
