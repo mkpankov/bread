@@ -231,46 +231,46 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
     Ok(tokens)
 }
 
-pub fn render(term: &mut FullTerminal, tokens: &[Token]) {
+pub fn render(trm: &mut FullTerminal, tokens: &[Token]) {
     for t in tokens.iter() {
         match *t {
-            Literal(ref string) => write!(term, "{}", string).unwrap(),
+            Literal(ref string) => write!(trm, "{}", string).unwrap(),
             Fg(maybe_color) => {
-                term.fg(maybe_color.unwrap()).unwrap();
+                trm.fg(maybe_color.unwrap()).unwrap();
             }
             Bg(maybe_color) => {
-                term.bg(maybe_color.unwrap()).unwrap();
+                trm.bg(maybe_color.unwrap()).unwrap();
             }
             Bold => {
-                term.attr(term::attr::Bold).unwrap();
+                trm.attr(term::Attr::Bold).unwrap();
             }
             Dim => {
-                term.attr(term::attr::Dim).unwrap();
+                trm.attr(term::Attr::Dim).unwrap();
             }
             Italic(maybe_value) => {
-                term.attr(term::attr::Italic(maybe_value.unwrap())).unwrap();
+                trm.attr(term::Attr::Italic(maybe_value.unwrap())).unwrap();
             }
             Underline(maybe_value) => {
-                term.attr(term::attr::Underline(maybe_value.unwrap())).unwrap();
+                trm.attr(term::Attr::Underline(maybe_value.unwrap())).unwrap();
             }
             Blink => {
-                term.attr(term::attr::Blink).unwrap();
+                trm.attr(term::Attr::Blink).unwrap();
             }
             Standout(maybe_value) => {
-                term.attr(term::attr::Standout(maybe_value.unwrap())).unwrap();
+                trm.attr(term::Attr::Standout(maybe_value.unwrap())).unwrap();
             }
             Reverse => {
-                term.attr(term::attr::Reverse).unwrap();
+                trm.attr(term::Attr::Reverse).unwrap();
             }
             Secure => {
-                term.attr(term::attr::Secure).unwrap();
+                trm.attr(term::Attr::Secure).unwrap();
             }
             Reset => {
-                term.reset().unwrap();
+                trm.reset().unwrap();
             }
         }
     }
-    term.reset().unwrap();
+    trm.reset().unwrap();
 }
 
 pub fn render_str(term: &mut FullTerminal, s: &str) -> Result<(), String> {
