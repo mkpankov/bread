@@ -24,7 +24,7 @@ fn main() {
         Some(ref mut t) => render_str(t, input).unwrap(),
     };
 
-    let tokens = [T::Fg(Some(B::RED)), T::Literal(format!("I'm red\n")), T::Reset];
+    let tokens = [T::Fg(B::RED), T::Literal(format!("I'm red\n")), T::Reset];
     match t {
         None => panic!("Couldn't get terminal"),
         Some(ref mut t) => render(t, &tokens),

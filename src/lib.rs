@@ -4,8 +4,11 @@ use State::{Beginning, Tag, Inside, InsideColor, InsideBool};
 use Token::{Fg, Bg, Bold, Dim, Italic, Underline, Blink, Standout,
             Reverse, Secure,
             Reset,
-            Literal};
+            Literal,
+            Partial,
+};
 use term::{StdTerminal};
+use PartialToken as PT;
 pub use term::color::Color as Color;
 pub use term::color::{
     BLACK,
@@ -37,16 +40,26 @@ enum State {
     InsideBool,
 }
 
+#[derive(Copy, Show, PartialEq, Eq)]
+pub enum PartialToken {
+    Fg,
+    Bg,
+    Italic,
+    Underline,
+    Standout,
+}
+
 #[derive(Show, PartialEq, Eq)]
 pub enum Token {
-    Fg(Option<Color>),
-    Bg(Option<Color>),
+    Partial(PartialToken),
+    Fg(Color),
+    Bg(Color),
     Bold,
     Dim,
-    Italic(Option<bool>),
-    Underline(Option<bool>),
+    Italic(bool),
+    Underline(bool),
     Blink,
-    Standout(Option<bool>),
+    Standout(bool),
     Reverse,
     Secure,
     Reset,
@@ -80,11 +93,11 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                 '(' => {
                     match &*current {
                         "fg" => {
-                            tokens.push(Fg(None));
+                            tokens.push(Partial(PT::Fg));
                             state = InsideColor;
                         }
                         "bg" => {
-                            tokens.push(Bg(None));
+                            tokens.push(Partial(PT::Bg));
                             state = InsideColor;
                         }
                         "bold" => {
@@ -96,11 +109,11 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                             state = Inside;
                         }
                         "italic" => {
-                            tokens.push(Italic(None));
+                            tokens.push(Partial(PT::Italic));
                             state = InsideBool;
                         }
                         "underline" => {
-                            tokens.push(Underline(None));
+                            tokens.push(Partial(PT::Underline));
                             state = InsideBool;
                         }
                         "blink" => {
@@ -108,7 +121,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                             state = Inside;
                         }
                         "standout" => {
-                            tokens.push(Standout(None));
+                            tokens.push(Partial(PT::Standout));
                             state = InsideBool;
                         }
                         "reverse" => {
@@ -159,9 +172,9 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                             match maybe_last {
                                 None => return Err(format!("Expected a tag token in array, found {:?}", maybe_last)),
                                 Some(token) => match token {
-                                    Italic(_) => Italic(Some(value)),
-                                    Underline(_) => Underline(Some(value)),
-                                    Standout(_) => Standout(Some(value)),
+                                    Partial(PT::Italic) => Italic(value),
+                                    Partial(PT::Underline) => Underline(value),
+                                    Partial(PT::Standout) => Standout(value),
                                     _ => return Err(format!("Expected tag, found {:?}", token)),
                                 }
                             })
@@ -201,8 +214,8 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                             None => return Err(format!("Expected a tag token in array, found {:?}", maybe_last)),
                             Some(token) => {
                                 match token {
-                                    Fg(_) => Fg(Some(color)),
-                                    Bg(_) => Bg(Some(color)),
+                                    Partial(PT::Fg) => Fg(color),
+                                    Partial(PT::Bg) => Bg(color),
                                     _ => unreachable!(),
                                 }
                             }
@@ -235,11 +248,11 @@ pub fn render(trm: &mut FullTerminal, tokens: &[Token]) {
     for t in tokens.iter() {
         match *t {
             Literal(ref string) => write!(trm, "{}", string).unwrap(),
-            Fg(maybe_color) => {
-                trm.fg(maybe_color.unwrap()).unwrap();
+            Fg(color) => {
+                trm.fg(color).unwrap();
             }
-            Bg(maybe_color) => {
-                trm.bg(maybe_color.unwrap()).unwrap();
+            Bg(color) => {
+                trm.bg(color).unwrap();
             }
             Bold => {
                 trm.attr(term::Attr::Bold).unwrap();
@@ -247,17 +260,17 @@ pub fn render(trm: &mut FullTerminal, tokens: &[Token]) {
             Dim => {
                 trm.attr(term::Attr::Dim).unwrap();
             }
-            Italic(maybe_value) => {
-                trm.attr(term::Attr::Italic(maybe_value.unwrap())).unwrap();
+            Italic(value) => {
+                trm.attr(term::Attr::Italic(value)).unwrap();
             }
-            Underline(maybe_value) => {
-                trm.attr(term::Attr::Underline(maybe_value.unwrap())).unwrap();
+            Underline(value) => {
+                trm.attr(term::Attr::Underline(value)).unwrap();
             }
             Blink => {
                 trm.attr(term::Attr::Blink).unwrap();
             }
-            Standout(maybe_value) => {
-                trm.attr(term::Attr::Standout(maybe_value.unwrap())).unwrap();
+            Standout(value) => {
+                trm.attr(term::Attr::Standout(value)).unwrap();
             }
             Reverse => {
                 trm.attr(term::Attr::Reverse).unwrap();
@@ -268,6 +281,7 @@ pub fn render(trm: &mut FullTerminal, tokens: &[Token]) {
             Reset => {
                 trm.reset().unwrap();
             }
+            Partial(_) => unreachable!(),
         }
     }
     trm.reset().unwrap();
@@ -284,9 +298,9 @@ fn parse_fg_two_colors() {
     println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
-             vec![Fg(Some(term::color::RED)),
+             vec![Fg(term::color::RED),
                   Literal("I'm red text ".to_string()),
-                  Fg(Some(term::color::BLUE)),
+                  Fg(term::color::BLUE),
                   Literal("I am blue".to_string())]))
 }
 
@@ -296,9 +310,9 @@ fn parse_fg_colors_bright() {
     println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
-             vec![Fg(Some(term::color::BRIGHT_GREEN)),
+             vec![Fg(term::color::BRIGHT_GREEN),
                   Literal("I'm bright green text ".to_string()),
-                  Fg(Some(term::color::BRIGHT_MAGENTA)),
+                  Fg(term::color::BRIGHT_MAGENTA),
                   Literal("I am bright magenta".to_string())]))
 }
 
@@ -308,11 +322,11 @@ fn parse_fg_bg_colors() {
     println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
-             vec![Fg(Some(term::color::BRIGHT_GREEN)),
-                  Bg(Some(term::color::BLUE)),
+             vec![Fg(term::color::BRIGHT_GREEN),
+                  Bg(term::color::BLUE),
                   Literal("I'm bright green text ".to_string()),
-                  Bg(Some(term::color::BRIGHT_BLACK)),
-                  Fg(Some(term::color::BRIGHT_MAGENTA)),
+                  Bg(term::color::BRIGHT_BLACK),
+                  Fg(term::color::BRIGHT_MAGENTA),
                   Literal("I am bright magenta".to_string())]))
 }
 
@@ -322,8 +336,8 @@ fn parse_fg_bg_bold_colors() {
     println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
-             vec![Fg(Some(term::color::BRIGHT_GREEN)),
-                  Bg(Some(term::color::BLUE)),
+             vec![Fg(term::color::BRIGHT_GREEN),
+                  Bg(term::color::BLUE),
                   Bold,
                   Literal("I'm bold bright green text".to_string()),
                   ]))
@@ -346,7 +360,7 @@ fn parse_reset() {
     println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
-             vec![Fg(Some(term::color::RED)),
+             vec![Fg(term::color::RED),
                   Literal("I'm just dim text".to_string()),
                   Reset,
                   ]))
@@ -358,9 +372,9 @@ fn parse_italic() {
     println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
-             vec![Italic(Some(true)),
+             vec![Italic(true),
                   Literal("I'm just dim text".to_string()),
-                  Italic(Some(false)),
+                  Italic(false),
                   ]))
 }
 
@@ -370,9 +384,9 @@ fn parse_underline() {
     println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
-             vec![Underline(Some(true)),
+             vec![Underline(true),
                   Literal("I'm underlined text".to_string()),
-                  Underline(Some(false)),
+                  Underline(false),
                   ]))
 }
 
@@ -394,9 +408,9 @@ fn parse_standout() {
     println!("{:?}", parse(input));
     assert!(parse(input)
          == Ok(
-             vec![Standout(Some(true)),
+             vec![Standout(true),
                   Literal("I'm standing out text".to_string()),
-                  Standout(Some(false)),
+                  Standout(false),
                   ]))
 }
 
