@@ -191,26 +191,7 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                     match i {
                         ')' => {
                         state = Beginning;
-                        let color = match &*current {
-                            "black" => term::color::BLACK,
-                            "blue" => term::color::BLUE,
-                            "bright-black" => term::color::BRIGHT_BLACK,
-                            "bright-blue" => term::color::BRIGHT_BLUE,
-                            "bright-cyan" => term::color::BRIGHT_CYAN,
-                            "bright-green" => term::color::BRIGHT_GREEN,
-                            "bright-magenta" => term::color::BRIGHT_MAGENTA,
-                            "bright-red" => term::color::BRIGHT_RED,
-                            "bright-white" => term::color::BRIGHT_WHITE,
-                            "bright-yellow" => term::color::BRIGHT_YELLOW,
-                            "cyan" => term::color::CYAN,
-                            "green" => term::color::GREEN,
-                            "magenta" => term::color::MAGENTA,
-                            "red" => term::color::RED,
-                            "white" => term::color::WHITE,
-                            "yellow" => term::color::YELLOW,
-
-                            _ => return Err(format!("Expected color name, found {}", current)),
-                        };
+                        let color = try!(get_color_by_name(&*current));
                         let maybe_last = tokens.pop();
                         tokens.push(match maybe_last {
                             None => return Err(format!("Expected a tag token in array, found {:?}", maybe_last)),
@@ -244,6 +225,29 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
     }
 
     Ok(tokens)
+}
+
+fn get_color_by_name(color: &str) -> Result<Color, String> {
+    match &*color {
+        "black" => Ok(term::color::BLACK),
+        "blue" => Ok(term::color::BLUE),
+        "bright-black" => Ok(term::color::BRIGHT_BLACK),
+        "bright-blue" => Ok(term::color::BRIGHT_BLUE),
+        "bright-cyan" => Ok(term::color::BRIGHT_CYAN),
+        "bright-green" => Ok(term::color::BRIGHT_GREEN),
+        "bright-magenta" => Ok(term::color::BRIGHT_MAGENTA),
+        "bright-red" => Ok(term::color::BRIGHT_RED),
+        "bright-white" => Ok(term::color::BRIGHT_WHITE),
+        "bright-yellow" => Ok(term::color::BRIGHT_YELLOW),
+        "cyan" => Ok(term::color::CYAN),
+        "green" => Ok(term::color::GREEN),
+        "magenta" => Ok(term::color::MAGENTA),
+        "red" => Ok(term::color::RED),
+        "white" => Ok(term::color::WHITE),
+        "yellow" => Ok(term::color::YELLOW),
+
+        _ => return Err(format!("Expected color name, found {}", color)),
+    }
 }
 
 pub fn render(trm: &mut FullTerminal, tokens: &[Token]) {
