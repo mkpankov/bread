@@ -5,7 +5,7 @@ use Token::{Fg, Bg, Bold, Dim, Italic, Underline, Blink, Standout,
             Reverse, Secure,
             Reset,
             Literal};
-use term::{Terminal, WriterWrapper};
+use term::{StdTerminal};
 pub use term::color::Color as Color;
 pub use term::color::{
     BLACK,
@@ -26,7 +26,7 @@ pub use term::color::{
     YELLOW,
 };
 
-pub type FullTerminal = Box<Terminal<WriterWrapper> + Send>;
+pub type FullTerminal = Box<StdTerminal>;
 
 #[derive(Show)]
 enum State {
