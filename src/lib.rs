@@ -93,52 +93,11 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
                     current.push(i);
                 },
                 '(' => {
-                    match &*current {
-                        "fg" => {
-                            tokens.push(Partial(PT::Fg));
-                            state = InsideColor;
+                    match try!(get_token_state(&*current)) {
+                        (token, s) => {
+                            tokens.push(token);
+                            state = s;
                         }
-                        "bg" => {
-                            tokens.push(Partial(PT::Bg));
-                            state = InsideColor;
-                        }
-                        "bold" => {
-                            tokens.push(Attribute(Bold));
-                            state = Inside;
-                        }
-                        "dim" => {
-                            tokens.push(Attribute(Dim));
-                            state = Inside;
-                        }
-                        "italic" => {
-                            tokens.push(Partial(PT::Italic));
-                            state = InsideBool;
-                        }
-                        "underline" => {
-                            tokens.push(Partial(PT::Underline));
-                            state = InsideBool;
-                        }
-                        "blink" => {
-                            tokens.push(Attribute(Blink));
-                            state = Inside;
-                        }
-                        "standout" => {
-                            tokens.push(Partial(PT::Standout));
-                            state = InsideBool;
-                        }
-                        "reverse" => {
-                            tokens.push(Attribute(Reverse));
-                            state = Inside;
-                        }
-                        "secure" => {
-                            tokens.push(Attribute(Secure));
-                            state = Inside;
-                        }
-                        "reset" => {
-                            tokens.push(Reset);
-                            state = Inside;
-                        }
-                        _ => return Err(format!("Expected a tag, found {}", current)),
                     }
                     current = String::new();
                 }
@@ -225,6 +184,47 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
     }
 
     Ok(tokens)
+}
+
+fn get_token_state(current: &str) -> Result<(Token, State), String> {
+    match &*current {
+        "fg" => {
+            Ok((Partial(PT::Fg), InsideColor))
+        }
+        "bg" => {
+            Ok((Partial(PT::Bg), InsideColor))
+        }
+        "bold" => {
+            Ok((Attribute(Bold), Inside))
+        }
+        "dim" => {
+            Ok((Attribute(Dim), Inside))
+        }
+        "italic" => {
+            Ok((Partial(PT::Italic), InsideBool))
+        }
+        "underline" => {
+            Ok((Partial(PT::Underline), InsideBool))
+        }
+        "blink" => {
+            Ok((Attribute(Blink), Inside))
+        }
+        "standout" => {
+            Ok((Partial(PT::Standout), InsideBool))
+        }
+        "reverse" => {
+            Ok((Attribute(Reverse), Inside))
+        }
+        "secure" => {
+            Ok((Attribute(Secure), Inside))
+        }
+        "reset" => {
+            Ok((Reset, Inside))
+        }
+        _ => {
+            Err(format!("Expected a tag, found {}", current))
+        }
+    }
 }
 
 fn get_color_by_name(color: &str) -> Result<Color, String> {
