@@ -32,6 +32,6 @@ license = "GPL-3.0"
 # (similar to the readme key)
 #license-file = "..."
 
-[dependencies]
+[dependencies.term]
 
-term = "*"
+git = "https://github.com/rust-lang/term.git"
