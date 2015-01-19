@@ -74,26 +74,28 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
     let mut tokens = vec![];
     for i in s.chars() {
         match state {
-            Beginning => match i {
-                '^' => {
-                    state = Tag;
-                    if &*current != "" {
-                        tokens.push(Literal(current.clone()));
+            Beginning => {
+                match try!(parse_literal(i, &current)) {
+                    (maybe_token, s, action) => {
+                        match action {
+                            Action::Grow(string) => current.push_str(&*string),
+                            Action::Break(string) => current = string,
+                        }
+                        match maybe_token {
+                            Some(token) => tokens.push(token),
+                            None => (),
+                        }
+                        state = s;
                     }
-                    current = String::new();
-                },
-                _   => {
-                    state = Beginning;
-                    current.push(i);
-                },
-            },
+                }
+            }
             Tag => match i {
                 'a'...'z' | '-' => {
                     state = Tag;
                     current.push(i);
                 },
                 '(' => {
-                    match try!(get_token_state(&*current)) {
+                    match try!(parse_tag(&*current)) {
                         (token, s) => {
                             tokens.push(token);
                             state = s;
@@ -186,7 +188,32 @@ fn parse(s: &str) -> Result<Vec<Token>, String> {
     Ok(tokens)
 }
 
-fn get_token_state(current: &str) -> Result<(Token, State), String> {
+enum Action {
+    Grow(String),
+    Break(String),
+}
+
+fn parse_literal(next: char, current: &String)
+ -> Result<(Option<Token>, State, Action), String> {
+    match next {
+        '^' => {
+            let maybe_token =
+                if *current != "" {
+                    Some(Literal(current.clone()))
+                } else {
+                    None
+                };
+            Ok((maybe_token, Tag, Action::Break(String::new())))
+        },
+        _ => {
+            let mut s = String::new();
+            s.push(next);
+            Ok((None, Beginning, Action::Grow(s)))
+        },
+    }
+}
+
+fn parse_tag(current: &str) -> Result<(Token, State), String> {
     match &*current {
         "fg" => {
             Ok((Partial(PT::Fg), InsideColor))
