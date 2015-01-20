@@ -7,7 +7,7 @@ We're going to use formatting syntax of Dzen (https://github.com/robm/dzen). Som
 * `^fg(red)I'm red text ^fg(blue)I am blue`
 * `^bg(red)The ^fg(bright-black)text to ^bg(blue)^fg(cyan)colorize`
 
-For full example of working program, see [`src/test.rs`](https://github.com/mkpankov/bread/blob/master/src/test.rs). You can run it by cloning the repo and doing `cargo run`.
+For full example of working program, see [`src/test.rs`](https://github.com/mkpankov/bread/blob/master/src/main.rs). You can run it by cloning the repo and doing `cargo run`.
 
 To use in your project, add
 
