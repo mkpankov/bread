@@ -1,12 +1,13 @@
 extern crate term;
 
+use std::io::Write;
 use State::{Beginning, Tag, Inside, InsideColor, InsideBool};
 use Token::{Attribute,
             Reset,
             Literal,
             Partial,
 };
-use term::{StdTerminal, Attr};
+use term::{StdoutTerminal, Attr};
 pub use term::Attr::{
     Bold,
     Dim,
@@ -40,9 +41,9 @@ pub use term::color::{
     YELLOW,
 };
 
-pub type FullTerminal = Box<StdTerminal>;
+pub type FullTerminal = Box<StdoutTerminal>;
 
-#[derive(Show)]
+#[derive(Debug)]
 enum State {
     Beginning,
     Tag,
@@ -51,7 +52,7 @@ enum State {
     InsideBool,
 }
 
-#[derive(Copy, Show, PartialEq, Eq)]
+#[derive(Copy, Debug, PartialEq, Eq)]
 pub enum PartialToken {
     Fg,
     Bg,
@@ -60,7 +61,7 @@ pub enum PartialToken {
     Standout,
 }
 
-#[derive(Show, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Token {
     Partial(PartialToken),
     Attribute(Attr),
@@ -280,7 +281,9 @@ fn get_color_by_name(color: &str) -> Result<Color, String> {
 pub fn render(trm: &mut FullTerminal, tokens: &[Token]) {
     for t in tokens.iter() {
         match *t {
-            Literal(ref string) => write!(trm, "{}", string).unwrap(),
+            Literal(ref string) => {
+                write!(trm, "{}", string).unwrap();
+            }
             Attribute(value) => {
                 trm.attr(value).unwrap();
             }
