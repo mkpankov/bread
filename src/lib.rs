@@ -52,7 +52,7 @@ enum State {
     InsideBool,
 }
 
-#[derive(Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PartialToken {
     Fg,
     Bg,
