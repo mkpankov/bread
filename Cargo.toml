@@ -34,4 +34,4 @@ license = "GPL-3.0"
 
 [dependencies.term]
 
-git = "https://github.com/rust-lang/term.git"
+version = "0.2"
