@@ -1,3 +1,5 @@
+#![cfg(not(test))]
+
 extern crate bread;
 extern crate term;
 
