@@ -1,4 +1,4 @@
-# bread [![Build Status](https://travis-ci.org/mkpankov/bread.svg?branch=master)](https://travis-ci.org/mkpankov/bread)[![Clippy Linting Result](http://clippy.bashy.io/github/mkpankov/bread/master/badge.svg)]
+# bread [![Build Status](https://travis-ci.org/mkpankov/bread.svg?branch=master)](https://travis-ci.org/mkpankov/bread)[![Clippy Linting Result](http://clippy.bashy.io/github/mkpankov/bread/master/badge.svg)](http://clippy.bashy.io/github/mkpankov/bread/master/log)
 
 Text formatting library for terminal output, with embedded formatting tokens.
 
